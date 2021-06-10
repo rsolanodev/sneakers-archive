@@ -5,6 +5,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from sneakers.exceptions import BrandDoesNotExist
+from sneakers.helpers import download_images
 
 
 class SneakerScraper:
@@ -75,6 +76,7 @@ class SneakerScraper:
                         if (limit and len(self.sneakers) < limit) or not limit:
                             self.add_sneaker(sneaker=sneaker)
                 skip += 100
+            download_images(brand=name, sneakers=self.sneakers)
         else:
             raise BrandDoesNotExist(
                 "The specified brand name does not exist, please try Nike, Adidas, Reebok, "
