@@ -6,16 +6,17 @@ from typing import List
 import requests
 
 
-def download_image(brand_folder: str, url: str) -> None:
+def download_image(folder: str, url: str) -> None:
     filename = url.split("/")[-1]
-    response = requests.get(url, stream=True)
-    if response.ok:
-        with open(f"{brand_folder}/{filename}", "wb") as fd:
-            for chunk in response.iter_content(chunk_size=1024):
-                fd.write(chunk)
+    if "svg" not in filename:
+        response = requests.get(url, stream=True)
+        if response.ok:
+            with open(f"{folder}/{filename}", "wb") as fd:
+                for chunk in response.iter_content(chunk_size=1024):
+                    fd.write(chunk)
 
 
-def download_images(brand: str, sneakers: List) -> None:
+def download_images_by_brand(brand: str, sneakers: List) -> None:
     if not os.path.exists("images"):
         os.mkdir("images")
     brand_folder = slugify(value=brand)
@@ -23,7 +24,17 @@ def download_images(brand: str, sneakers: List) -> None:
     if not os.path.exists(brand_folder_path):
         os.mkdir(brand_folder_path)
     for sneaker in sneakers:
-        download_image(brand_folder=brand_folder_path, url=sneaker["image"])
+        download_image(folder=brand_folder_path, url=sneaker["image"])
+
+
+def download_images_by_date(year: str, sneakers: List) -> None:
+    if not os.path.exists("images"):
+        os.mkdir("images")
+    date_folder_path = f"images/{year}"
+    if not os.path.exists(date_folder_path):
+        os.mkdir(date_folder_path)
+    for sneaker in sneakers:
+        download_image(folder=date_folder_path, url=sneaker["image"])
 
 
 def slugify(value: str, allow_unicode: bool = False) -> str:
