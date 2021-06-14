@@ -107,13 +107,15 @@ class SneakerScraper:
             response = self.get_sneakers_by_date(year=year, month=month)
             soup = BeautifulSoup(response.text, "html.parser")
             items = soup.find_all("div", class_="sneaker-release-item")
+            sneakers: List = []
             for sneaker in items:
-                self.sneakers.append(
+                sneakers.append(
                     {
                         "name": sneaker.find("img")["alt"],
                         "image": self.get_original_image(sneaker.find("img")["src"]),
                     }
                 )
+            download_images_by_date(year=year, sneakers=sneakers)
+            self.sneakers.extend(sneakers)
             after_date += relativedelta(months=1)
-            download_images_by_date(year=year, sneakers=self.sneakers)
         return self.sneakers

@@ -6,7 +6,7 @@ from sneakers.scrapers import SneakerScraper
 from tests.mocks import download_images_by_brand, download_images_by_date
 
 SOLE_COLLECTOR_BRANDS = 9
-ALL_SNEAKERS_IN_2020_03 = 22
+ALL_SNEAKERS_IN_2020_09 = 53
 
 
 def test_brands_length():
@@ -35,5 +35,5 @@ def test_scrap_sneakers_by_brand_with_unavailable_brand():
 @mock.patch("sneakers.scrapers.download_images_by_date", download_images_by_date)
 def test_scrap_sneakers_by_dates():
     scraper = SneakerScraper()
-    sneakers = scraper.scrap_sneakers_by_dates(after="01/03/2020", before="01/03/2020")
-    assert len(sneakers) == ALL_SNEAKERS_IN_2020_03
+    sneakers = scraper.scrap_sneakers_by_dates(after="01/09/2020", before="01/09/2020")
+    assert len(sneakers) == ALL_SNEAKERS_IN_2020_09
