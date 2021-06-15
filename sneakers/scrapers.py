@@ -1,6 +1,6 @@
 import datetime
 import json
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 import requests
 from bs4 import BeautifulSoup
@@ -16,6 +16,7 @@ class SneakerScraper:
     def __init__(self):
         self.brands: Dict[str, str] = self.scrap_brands()
         self.sneakers: List = []
+        self.sneakers_downloaded: int = 0
 
     def parse_url(self, url) -> str:
         return self.BASE_URL + url
@@ -59,14 +60,21 @@ class SneakerScraper:
         """Replace the url parameters that modify the image."""
         return url.replace("h_200,", "").replace("w_350", "w_1200")
 
-    def scrap_sneakers_by_brand(
-        self, name: str, start: int = 0, limit: int = 0
-    ) -> List:
+    @staticmethod
+    def is_sneaker_available(url: str) -> bool:
+        return "svg" not in url
+
+    def clear(self):
+        self.sneakers.clear()
+        self.sneakers_downloaded = 0
+
+    def scrap_sneakers_by_brand(self, name: str, start: int = 0, limit: int = 0) -> int:
         """
         :param name: brand name
         :param start: number to start getting data on
         :param limit: number of desired sneakers
         """
+        self.clear()
         if name in self.brands:
             brand_url = self.brands[name]
             brand_id = self.get_brand_id(brand_url)
@@ -79,43 +87,42 @@ class SneakerScraper:
                 is_ok, data = response.ok, json.loads(response.text)
                 if is_ok:
                     for sneaker in data:
-                        if (limit and len(self.sneakers) < limit) or not limit:
-                            self.sneakers.append(
-                                {
-                                    "name": sneaker["name"],
-                                    "image": sneaker["hero_image_url"],
-                                }
-                            )
+                        if self.is_sneaker_available(sneaker["hero_image_url"]):
+                            if (limit and len(self.sneakers) < limit) or not limit:
+                                self.sneakers.append(
+                                    {
+                                        "name": sneaker["name"],
+                                        "image": sneaker["hero_image_url"],
+                                    }
+                                )
                 skip += 100
-            download_images_by_brand(brand=name, sneakers=self.sneakers)
-        else:
-            raise BrandDoesNotExist(
-                "The specified brand name does not exist, please try Nike, Adidas, Reebok, "
-                "Puma, Jordan, Converse, Vans, New Balance or ASICS."
+            self.sneakers_downloaded += download_images_by_brand(
+                brand=name, sneakers=self.sneakers
             )
-        return self.sneakers
+        else:
+            raise BrandDoesNotExist("The specified brand was not found.")
+        return self.sneakers_downloaded
 
-    def scrap_sneakers_by_dates(self, after: str, before: Optional[str] = "") -> List:
-        after_date = datetime.datetime.strptime(after, "%d/%m/%Y")
-        before_date = (
-            datetime.datetime.strptime(before, "%d/%m/%Y")
-            if before
-            else datetime.datetime.today()
-        )
+    def scrap_sneakers_by_dates(
+        self, after_date: datetime.date, before_date: datetime.date
+    ) -> int:
+        self.clear()
         while after_date <= before_date:
             year, month = after_date.strftime("%Y"), after_date.strftime("%m")
             response = self.get_sneakers_by_date(year=year, month=month)
             soup = BeautifulSoup(response.text, "html.parser")
             items = soup.find_all("div", class_="sneaker-release-item")
-            sneakers: List = []
             for sneaker in items:
-                sneakers.append(
-                    {
-                        "name": sneaker.find("img")["alt"],
-                        "image": self.get_original_image(sneaker.find("img")["src"]),
-                    }
-                )
-            download_images_by_date(year=year, sneakers=sneakers)
-            self.sneakers.extend(sneakers)
+                image_url = sneaker.find("img")["src"]
+                if self.is_sneaker_available(image_url):
+                    self.sneakers.append(
+                        {
+                            "name": sneaker.find("img")["alt"],
+                            "image": self.get_original_image(image_url),
+                        }
+                    )
+            self.sneakers_downloaded += download_images_by_date(
+                year=year, sneakers=self.sneakers
+            )
             after_date += relativedelta(months=1)
-        return self.sneakers
+        return self.sneakers_downloaded
