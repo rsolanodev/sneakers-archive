@@ -8,7 +8,6 @@ class Brand:
     VANS = "Vans"
     NEW_BALANCE = "New Balance"
     ASICS = "ASICS"
-    AMIGO = "Amigo"
 
     @classmethod
     def all(cls):
